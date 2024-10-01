@@ -3,3 +3,4 @@ vllm==0.6.2
 better_profanity
 detoxify
 flask
+detoxify
