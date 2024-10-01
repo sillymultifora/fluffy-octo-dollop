@@ -1,33 +1,43 @@
 from argparse import ArgumentParser
+
 from better_profanity import profanity
-from flask import Flask, jsonify, request, g
-from openai import OpenAI
 from detoxify import Detoxify
-from constants import BAD_INPUT_MESSAGE, NUMBER_OUTPUT_GENERATION, TOXICITY_THRESHOLD, BAD_OUTPUT_MESSAGE
+from flask import Flask, jsonify, request
+from openai import OpenAI
+
+from constants import BAD_INPUT_MESSAGE, BAD_OUTPUT_MESSAGE, NUMBER_OUTPUT_GENERATION, TOXICITY_THRESHOLD
 
 app = Flask(__name__)
 
-# Global variables for API credentials and model name
-openai_api_key = None
-openai_api_base = None
-model_name = None
+
+def set_llm_client(api_key, api_base):
+    app.config["llm_client"] = OpenAI(
+        api_key=api_key,
+        base_url=api_base,
+    )
+
+
+def set_model_name(model_name):
+    app.config["model_name"] = model_name
+
+
+def get_model_name():
+    """Return the model name."""
+    return app.config.get("model_name")
 
 
 def get_llm_client():
-    """Initialize and return the LLM client using OpenAI."""
-    if "llm_client" not in g:
-        g.llm_client = OpenAI(
-            api_key=openai_api_key,
-            base_url=openai_api_base,
-        )
-    return g.llm_client
+    """Return the LLM client using OpenAI."""
+    return app.config.get("llm_client")
+
+
+def set_toxify_model():
+    app.config["toxify_model"] = Detoxify("unbiased", device="cuda")
 
 
 def get_toxify_model():
     """Initialize and return the Detoxify model."""
-    if "toxify_model" not in g:
-        g.toxify_model = Detoxify("unbiased", device="cuda")
-    return g.toxify_model
+    return app.config.get("toxify_model")
 
 
 def is_bad_content(text):
@@ -40,17 +50,12 @@ def preprocess_input(input_text):
     return input_text.strip()
 
 
-def postprocess_output(output_text):
-    """Postprocess the generated output."""
-    return output_text
-
-
 def generate_response(text):
     """Generate a JSON response with the given text."""
     return jsonify({"response": text})
 
 
-def get_llm_output(llm_client, preprocessed_input):
+def get_llm_output(llm_client, preprocessed_input, model_name):
     """Get the output from the LLM model for the preprocessed input."""
     response = llm_client.chat.completions.create(
         model=model_name,
@@ -86,15 +91,14 @@ def process_request():
     # Preprocess the input
     preprocessed_input = preprocess_input(user_input)
     llm_client = get_llm_client()
-
+    model_name = get_model_name()
     try:
         # Generate and check multiple outputs
         for _ in range(NUMBER_OUTPUT_GENERATION):
-            output_text = get_llm_output(llm_client, preprocessed_input)
+            output_text = get_llm_output(llm_client, preprocessed_input, model_name)
 
             if not is_output_bad(output_text):
-                postprocessed_output = postprocess_output(output_text)
-                return generate_response(postprocessed_output)
+                return generate_response(output_text)
 
         # Return message if all generated outputs are bad
         return generate_response(BAD_OUTPUT_MESSAGE)
@@ -105,21 +109,23 @@ def process_request():
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--api-key", type=str, required=True, help="API key for OpenAI.")
-    parser.add_argument("--api-base", type=str, required=True, help="Base URL for the OpenAI API.")
-    parser.add_argument("--model-name", type=str, required=True, help="Model name to use for completions.")
+    parser.add_argument("--api-key", type=str, default="token-abc123", help="API key for OpenAI.")
+    parser.add_argument(
+        "--api-base", type=str, default="http://localhost:8000/v1/", help="Base URL for the OpenAI API."
+    )
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        default="meta-llama/Meta-Llama-3.1-8B-Instruct",
+        help="Model name to use for completions.",
+    )
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for Flask app.")
     parser.add_argument("--port", type=int, default=5000, help="Port for Flask app.")
 
     args = parser.parse_args()
 
-    # Set global variables for API key, base URL, and model name
-    openai_api_key = args.api_key
-    openai_api_base = args.api_base
-    model_name = args.model_name
-
-    with app.app_context():
-        get_llm_client()
-        get_toxify_model()
+    set_llm_client(args.api_key, args.api_base)
+    set_toxify_model()
+    set_model_name(args.model_name)
 
     app.run(host=args.host, port=args.port)
