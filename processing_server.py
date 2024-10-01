@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify
-import requests
-from better_profanity import profanity
-from openai import OpenAI
+from argparse import ArgumentParser
 
+from better_profanity import profanity
+from flask import Flask, jsonify, request
+from openai import OpenAI
 
 app = Flask(__name__)
 openai_api_key = "token-abc123"
@@ -37,7 +37,6 @@ def generate_bad_response():
     return jsonify({"response": "Your message contains bad words. Please, repharise it"})
 
 
-# Route to handle preprocessing, sending to model server, and postprocessing
 @app.route("/process", methods=["POST"])
 def process_request():
     data = request.json
@@ -59,28 +58,13 @@ def process_request():
 
     return jsonify({"response": response.choices[0].message.content})
 
-    # Step 2: Forward preprocessed input to the model-serving server
-    model_server_url = "http://localhost:8000/generate"  # Replace with the actual URL of the model server
-    headers = {"User-Agent": "Test Client"}
-    data = {
-        # "model": "neuralmagic/Meta-Llama-3.1-8B-quantized.w8a8",
-        "prompt": preprocessed_input,
-        # "max_tokens": 1000,
-        "temperature": 0,
-    }
-
-    response = requests.post(model_server_url, headers=headers, json=data)
-    data = response.content
-    print(data)
-    if response.status_code == 200:
-        # Step 3: Postprocess the output
-        model_output = response.json().get("response", "")
-        postprocessed_output = postprocess_output(model_output)
-
-        return jsonify({"response": postprocessed_output})
-    else:
-        return jsonify({"error": "Model server error"}), 500
-
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    parser = ArgumentParser()
+    parser.add_argument("--api-key", type=str, default="token-abc123")
+    parser.add_argument("--api-base", type=str, default="http://localhost:8000/v1/")
+    parser.add_argument("--model-name", type=str, default="meta-llama/Meta-Llama-3.1-8B-Instruct")
+    parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=5000)
+    args = parser.parse_args()
+    app.run(host=args.host, port=args.port)
