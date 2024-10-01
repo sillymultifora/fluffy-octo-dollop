@@ -1,27 +1,40 @@
 from flask import Flask, request, jsonify
 import requests
-
+from better_profanity import profanity
 from openai import OpenAI
 
+
 app = Flask(__name__)
+openai_api_key = "token-abc123"
+openai_api_base = "http://localhost:8000/v1/"
+model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
 
-# Preprocessing function
+def get_llm_client():
+    return OpenAI(
+        api_key=openai_api_key,
+        base_url=openai_api_base,
+    )
+
+
+llm_client = get_llm_client()
+
+
+def is_bad_content(text):
+    # TODO: add detection language?
+    return profanity.contains_profanity(text)
+
+
 def preprocess_input(input_text):
-    # Example: Remove or replace inappropriate words
-    prohibited_words = ["badword1", "badword2"]
-    replacement = "****"
-
-    for word in prohibited_words:
-        input_text = input_text.replace(word, replacement)
-
     return input_text
 
 
-# Postprocessing function
 def postprocess_output(output_text):
-    # Example: Modify output if needed (e.g., formatting, censoring, etc.)
     return output_text
+
+
+def generate_bad_response():
+    return jsonify({"response": "Your message contains bad words. Please, repharise it"})
 
 
 # Route to handle preprocessing, sending to model server, and postprocessing
@@ -29,21 +42,13 @@ def postprocess_output(output_text):
 def process_request():
     data = request.json
     user_input = data.get("input", "")
-    print(user_input)
 
-    # Step 1: Preprocess the input
+    if is_bad_content(user_input):
+        return generate_bad_response()
     preprocessed_input = preprocess_input(user_input)
 
-    openai_api_key = "token-abc123"
-    openai_api_base = "http://localhost:8000/v1/"
-
-    client = OpenAI(
-        api_key=openai_api_key,
-        base_url=openai_api_base,
-    )
-
-    chat_response = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3.1-8B-Instruct",
+    response = llm_client.chat.completions.create(
+        model=model_name,
         messages=[{"role": "user", "content": preprocessed_input}],
         # prompt="What's Your Name",
         # temperature=0.5,
@@ -52,7 +57,7 @@ def process_request():
         # stop=["\n"],
     )
 
-    return jsonify({"response": chat_response.choices[0].message.content})
+    return jsonify({"response": response.choices[0].message.content})
 
     # Step 2: Forward preprocessed input to the model-serving server
     model_server_url = "http://localhost:8000/generate"  # Replace with the actual URL of the model server
