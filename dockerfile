@@ -6,6 +6,6 @@ RUN apt-get update && \
     
 RUN git clone https://github.com/sillymultifora/fluffy-octo-dollop.git
 RUN cd fluffy-octo-dollop
-RUN pip install -r requirments.txt
+RUN pip install -r requirements.txt
 
 CMD bash ./start_servers.sh
