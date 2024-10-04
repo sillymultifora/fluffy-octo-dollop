@@ -2,70 +2,77 @@ from argparse import ArgumentParser
 
 from better_profanity import profanity
 from detoxify import Detoxify
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from openai import OpenAI
 
-from constants import BAD_INPUT_MESSAGE, BAD_OUTPUT_MESSAGE, NUMBER_OUTPUT_GENERATION, TOXICITY_THRESHOLD
+from constants import (
+    BAD_INPUT_MESSAGE,
+    BAD_OUTPUT_MESSAGE,
+    NUMBER_OUTPUT_GENERATION,
+    TOXICITY_THRESHOLD,
+)
 
 app = Flask(__name__)
 
 
-def set_llm_client(api_key, api_base):
+def set_llm_client(api_key: str, api_base: str) -> None:
+    """Configure the LLM client with the provided API key and base URL."""
     app.config["llm_client"] = OpenAI(
         api_key=api_key,
         base_url=api_base,
     )
 
 
-def set_model_name(model_name):
+def set_model_name(model_name: str) -> None:
+    """Set the model name in the application configuration."""
     app.config["model_name"] = model_name
 
 
-def get_model_name():
-    """Return the model name."""
+def get_model_name() -> str:
+    """Return the model name from the configuration."""
     return app.config.get("model_name")
 
 
-def get_llm_client():
-    """Return the LLM client using OpenAI."""
+def get_llm_client() -> OpenAI:
+    """Return the LLM client from the configuration."""
     return app.config.get("llm_client")
 
 
-def set_toxify_model():
+def set_toxify_model() -> None:
+    """Initialize and set the Detoxify model for toxicity prediction."""
     app.config["toxify_model"] = Detoxify("unbiased", device="cuda")
 
 
-def get_toxify_model():
-    """Initialize and return the Detoxify model."""
+def get_toxify_model() -> Detoxify:
+    """Return the Detoxify model from the configuration."""
     return app.config.get("toxify_model")
 
 
-def is_bad_content(text):
+def is_bad_content(text: str) -> bool:
     """Check if the input text contains profanity."""
     return profanity.contains_profanity(text)
 
 
-def preprocess_input(input_text):
-    """Preprocess user input by stripping whitespace."""
+def preprocess_input(input_text: str) -> str:
+    """Preprocess user input by trimming leading and trailing whitespaces."""
     return input_text.strip()
 
 
-def generate_response(text):
+def generate_response(text: str) -> Response:
     """Generate a JSON response with the given text."""
     return jsonify({"response": text})
 
 
-def get_llm_output(llm_client, preprocessed_input, model_name):
+def get_llm_output(llm_client: OpenAI, preprocessed_input: str, model_name: str) -> str:
     """Get the output from the LLM model for the preprocessed input."""
     response = llm_client.chat.completions.create(
         model=model_name,
         messages=[{"role": "user", "content": preprocessed_input}],
     )
-    output_text = response.choices[0].message.content
-    return output_text
+    return response.choices[0].message.content
 
 
-def is_output_bad(output_text):
+def is_output_bad(output_text: str) -> bool:
     """Check if the generated output contains profanity or high toxicity."""
     if profanity.contains_profanity(output_text):
         return True
@@ -73,14 +80,12 @@ def is_output_bad(output_text):
     toxify_model = get_toxify_model()
     prediction = toxify_model.predict(output_text)
 
-    if prediction["toxicity"] > TOXICITY_THRESHOLD:
-        return True
-    return False
+    return prediction["toxicity"] > TOXICITY_THRESHOLD
 
 
 @app.route("/process", methods=["POST"])
-def process_request():
-    """Process the incoming request and generate a response."""
+def process_request() -> Response:
+    """Process the incoming request, check for bad input/output, and generate a response."""
     data = request.json
     user_input = data.get("input", "")
 
@@ -92,8 +97,9 @@ def process_request():
     preprocessed_input = preprocess_input(user_input)
     llm_client = get_llm_client()
     model_name = get_model_name()
+
     try:
-        # Generate and check multiple outputs
+        # Generate and validate multiple outputs
         for _ in range(NUMBER_OUTPUT_GENERATION):
             output_text = get_llm_output(llm_client, preprocessed_input, model_name)
 
@@ -111,7 +117,10 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--api-key", type=str, default="token-abc123", help="API key for OpenAI.")
     parser.add_argument(
-        "--api-base", type=str, default="http://localhost:8000/v1/", help="Base URL for the OpenAI API."
+        "--api-base",
+        type=str,
+        default="http://localhost:8000/v1/",
+        help="Base URL for the OpenAI API.",
     )
     parser.add_argument(
         "--model-name",
@@ -119,8 +128,8 @@ if __name__ == "__main__":
         default="meta-llama/Meta-Llama-3.1-8B-Instruct",
         help="Model name to use for completions.",
     )
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for Flask app.")
-    parser.add_argument("--port", type=int, default=5000, help="Port for Flask app.")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for the Flask app.")
+    parser.add_argument("--port", type=int, default=5000, help="Port for the Flask app.")
 
     args = parser.parse_args()
 
