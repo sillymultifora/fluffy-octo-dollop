@@ -1,6 +1,5 @@
 vllm==0.6.2
-
-better_profanity
-detoxify
-flask
-detoxify
+better_profanity==0.7.0
+detoxify==0.5.2
+flask==3.0.3
+detoxify==0.5.2
