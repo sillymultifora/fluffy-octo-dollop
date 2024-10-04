@@ -116,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-name",
         type=str,
-        default="NousResearch/Hermes-3-Llama-3.1-8B",
+        default="meta-llama/Meta-Llama-3.1-8B-Instruct",
         help="Model name to use for completions.",
     )
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for Flask app.")
