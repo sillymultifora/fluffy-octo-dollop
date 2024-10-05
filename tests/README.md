@@ -8,6 +8,11 @@ pip install -r requirements.txt
 ```
 
 ### Running the Tests
+Before running the tests please, run the vllm server by:
+```
+vllm serve meta-llama/Meta-Llama-3.1-8B-Instruct --api-key my_token
+```
+
 To run the unit tests, use the following command:
 
 ```

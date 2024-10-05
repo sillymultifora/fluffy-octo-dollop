@@ -50,15 +50,15 @@ class TestFlaskApp(TestCase):
         text = "I hate you, you are a bad person. You should never exist!!!"
         set_toxify_model()
         self.assertTrue(is_output_bad(text))
-        text = "Ypu are the best person, I am proud of you."
-        self.assertTrue(is_output_bad(text))
+        text = "You are the best person, I am proud of you."
+        self.assertFalse(is_output_bad(text))
 
     def test_process_request_with_clean_input(self):
         """Test the Flask route for processing clean input."""
 
         with self.client:
             set_llm_client(
-                "token-abc123", "http://localhost:8000/v1/"
+                "my_token", "http://localhost:8000/v1/"
             )  # How to avoid this? And should I run the test before running tests?
             set_toxify_model()
             set_model_name("meta-llama/Meta-Llama-3.1-8B-Instruct")
@@ -87,7 +87,7 @@ class TestFlaskApp(TestCase):
         """Test the Flask route for processing bad input (with profanity)."""
         with self.client:
             set_llm_client(
-                "token-abc123", "http://localhost:8000/v1/"
+                "my_token", "http://localhost:8000/v1/"
             )  # How to avoid this? And should I run the test before running tests?
             set_toxify_model()
             set_model_name("meta-llama/Meta-Llama-3.1-8B-Instruct")
