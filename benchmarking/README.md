@@ -53,13 +53,12 @@ Once configured, you can start the load test and monitor the system's performanc
 - **Hardware**: 2x Nvidia RTX 3090 GPUs
 
 ### **Load Configuration**:
-- **Concurrent Users**: The server was tested with a maximum of 50 concurrent users.
+- **Concurrent Users**: The server was tested with a maximum of 5 concurrent users.
 - **Request Variety**: Each user sent requests with 5 different input lengths.
 - **Spawn Rate**: 1 user per second.
-- **Wait Time**: Each user waited between 1 to 3 seconds between consecutive requests.
+- **Wait Time**: Each user waited between 3 to 10 seconds between consecutive requests.
 
 ### **Performance**:
-- **Average Response Time**: Approximately 2 to 3 seconds under this load.
-- **Optimal Load Analysis**: For optimal performance, the maximum response time should ideally be capped at 2 seconds based on user expectations. Under similar conditions, this level of performance is achievable with around 30 concurrent users.
+- **Average Response Time**: Approximately 6 seconds under this load.
 
 ![Benchmarking Results](local_results.png)

@@ -2,17 +2,19 @@ from locust import HttpUser, task, between
 
 
 class LLMUser(HttpUser):
-    wait_time = between(1, 3)
+    wait_time = between(3, 10)
 
     @task(1)
     def short_sequence(self):
-        self.client.post("/process", json={"question": "What is the capital of France?"})
+        self.client.post("/process", json={"input": "What is the capital of France?"})
 
     @task(1)
     def medium_sequence(self):
         self.client.post(
             "/process",
-            json={"question": "Who wrote the novel Pride and Prejudice and in what year was it first published?"},
+            json={
+                "input": "Who wrote the novel Pride and Prejudice and in what year was it first published?"
+            },
         )
 
     @task(1)
@@ -20,7 +22,7 @@ class LLMUser(HttpUser):
         self.client.post(
             "/process",
             json={
-                "question": "Explain the process of photosynthesis in plants, highlighting the role of chlorophyll, sunlight, carbon dioxide, and water in producing glucose and oxygen."
+                "input": "Explain the process of photosynthesis in plants, highlighting the role of chlorophyll, sunlight, carbon dioxide, and water in producing glucose and oxygen."
             },
         )
 
@@ -31,7 +33,7 @@ class LLMUser(HttpUser):
             "the princess from the clutches of a fearsome dragon. After days of traveling through dense forests "
             "and crossing treacherous rivers, he finally reached the dragon’s lair..."
         )
-        self.client.post("/process", json={"question": story_prompt})
+        self.client.post("/process", json={"input": story_prompt})
 
     @task(1)
     def extremely_long_sequence(self):
@@ -43,4 +45,4 @@ class LLMUser(HttpUser):
             "from climate change, overfishing, and pollution. Efforts to conserve the reef are ongoing, but its future "
             "remains uncertain."
         )
-        self.client.post("/process", json={"question": passage})
+        self.client.post("/process", json={"input": passage})
